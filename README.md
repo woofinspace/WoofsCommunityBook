@@ -1,64 +1,53 @@
-# Woof's Community Clipboard 1.0.0
+# Woof's Community Book
 
-A custom Fabric 26.2 mod for Woof's RLCraft.
+A server-synchronized book for Woof's RLCraft. Everyone on the server shares one document, and every Community Book is a key to it.
 
-## What it does
+## Features
 
-- Adds a physical item named **Woof's Community Clipboard**.
-- The server owns one master document.
-- Every player is automatically given a clipboard when they join if they don't already have one.
-- Right-clicking the clipboard opens a custom editor.
-- Saving updates the server master and broadcasts the new version to all online players.
-- The document survives server restarts using Minecraft Saved Data.
-- A revision number prevents an older edit from overwriting a newer edit.
-- The clipboard is intentionally stack size 1.
+- Every player gets a Community Book when they join, if they don't already have one.
+- Right-click the book to open the editor.
+- Saving updates the server's shared copy and sends it to all online players.
+- The document survives server restarts.
+- A revision number stops an older edit from overwriting a newer one.
+- The book has a stack size of 1.
+- The editor has 8 pages, 12 lines per page, and 256 characters per line.
 
-## Important design detail
+## How it works
 
-The physical copies do NOT each contain an independent copy of the document. The server stores the master document and the item is the player's access token. This prevents copies from getting permanently out of sync.
+The physical books don't each hold their own copy of the document. The server keeps one master document, and each book is an access token for it. That keeps every copy in sync.
 
-## Current editor
+## Supported versions
 
-- 8 pages
-- 12 lines per page
-- 256 characters per line
-- 8 pages total
-- Page navigation and Save button
+| Minecraft | Mod loader | Fabric API | Java | Status |
+| --- | --- | --- | --- | --- |
+| 26.2 | Fabric Loader 0.19.3 or newer | 0.158.0 or newer | 25 | Supported |
 
-## Commands / obtaining the item
-
-For the first test, use:
-
-`/give @s woofscommunitybook:community_book`
-
-After the mod is installed, joining players automatically receive one if they don't have one.
+Other Minecraft versions and mod loaders aren't supported yet. Ready-to-use JAR files are in the [`builds` branch](https://github.com/woofinspace/WoofsCommunityBook/tree/builds/fabric).
 
 ## Installation
 
-This is a Fabric 26.2 mod and should be installed on **both the dedicated server and every client**.
+The mod needs to be installed on both the server and every player's client.
 
-Your pack already uses Fabric 26.2. Fabric's 26.2 docs specify Loom 1.17, Loader 0.19.3, and Java 25 for development.
+1. Install Fabric Loader 0.19.3 or newer and Fabric API 0.158.0 or newer for Minecraft 26.2.
+2. Download the Community Book JAR from the [`builds` branch](https://github.com/woofinspace/WoofsCommunityBook/tree/builds/fabric).
+3. Put the JAR in the `mods` folder on the server and on every client.
+4. Start the server and the clients.
 
-1. Install JDK 25 on the computer used to build the mod.
-2. Open this project in IntelliJ IDEA.
-3. Let Gradle import the project.
-4. Run `build` or `gradlew.bat build`.
-5. Take the shortest-name JAR from `build/libs`.
-6. Put that JAR in the server `mods` folder.
-7. Put the same JAR in every player's client `mods` folder.
-8. Restart the server and clients.
+## Getting a Community Book
 
-## Why there is no JAR in this package
+Players receive one automatically when they join. To give one manually, run:
 
-The current build environment used to prepare this source package does not have JDK 25 or the Gradle/Fabric dependency cache available, so I did not pretend an untested JAR was ready. The source is configured for your 26.2 toolchain and is intended to be compiled with Java 25.
+```
+/give @s woofscommunitybook:community_book
+```
 
-## Suggested next upgrade
+## Building from source
 
-The next version can make the item look like a real clipboard instead of using the vanilla paper texture, and can add:
-- named documents / multiple shared clipboards
-- admin-only editing
-- `/clipboard give <player>`
-- `/clipboard reset`
-- `/clipboard backup`
-- automatic copy recovery if a player loses their clipboard
-- a more Create-style clipboard UI
+1. Install JDK 25.
+2. Install Gradle 9.5.1.
+3. In the project folder, run `gradle build`.
+4. The JAR is written to `build/libs`.
+
+## License
+
+See [LICENSE](LICENSE).
