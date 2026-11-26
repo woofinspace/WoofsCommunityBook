@@ -58,3 +58,7 @@ Players receive one automatically when they join. To give one manually, run:
 ## License
 
 See [LICENSE](LICENSE).
+
+
+
+    99% Coded by AI
