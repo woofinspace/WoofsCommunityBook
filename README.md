@@ -64,7 +64,9 @@ See [LICENSE](LICENSE).
 <summary>Contributors</summary>
 
 WoofInSpace
+
 Anthropic Claude Code Haiku 5.5
+
 OpenAI ChatGPT
 
 </details>
