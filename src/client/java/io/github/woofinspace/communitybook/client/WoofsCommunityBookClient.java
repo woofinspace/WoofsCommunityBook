@@ -16,7 +16,7 @@ public class WoofsCommunityBookClient implements ClientModInitializer {
             context.client().execute(() -> {
                 if (openScreen != null) {
                     openScreen.applyServerState(payload.revision(), payload.document());
-                } else {
+                } else if (payload.open()) {
                     openScreen = new CommunityBookScreen(Component.translatable(
                             "screen.woofscommunitybook.title"
                     ), payload.revision(), payload.document());

@@ -73,7 +73,7 @@ public class BookSavedData extends SavedData {
 
     public static void openFor(MinecraftServer server, ServerPlayer player) {
         BookSavedData data = get(server);
-        ServerPlayNetworking.send(player, new OpenBookPayload(data.revision, encode(data.pages)));
+        ServerPlayNetworking.send(player, new OpenBookPayload(data.revision, encode(data.pages), true));
     }
 
     public static void handleSave(MinecraftServer server, ServerPlayer player, SaveBookPayload payload) {
@@ -87,7 +87,8 @@ public class BookSavedData extends SavedData {
         if (payload.baseRevision() != data.revision) {
             ServerPlayNetworking.send(player, new OpenBookPayload(
                     data.revision,
-                    encode(data.pages)
+                    encode(data.pages),
+                    true
             ));
             player.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
                     "screen.woofscommunitybook.conflict"
@@ -101,8 +102,9 @@ public class BookSavedData extends SavedData {
         data.setDirty();
 
         String document = encode(data.pages);
+        // Everyone gets the new text, but only players who already have the editor open will show it.
         for (ServerPlayer target : PlayerLookup.all(server)) {
-            ServerPlayNetworking.send(target, new OpenBookPayload(data.revision, document));
+            ServerPlayNetworking.send(target, new OpenBookPayload(data.revision, document, target == player));
         }
     }
 
