@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "woofscommunitybook",
+  "version": "${version}",
+  "name": "Woof's Community Book",
+  "description": "A server-synchronized physical book for Woof's RLCraft.",
+  "authors": ["Woof InSpace"],
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "io.github.woofinspace.communitybook.WoofsCommunityBook"
+    ],
+    "client": [
+      "io.github.woofinspace.communitybook.client.WoofsCommunityBookClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "26.2",
+    "fabric-api": ">=0.158.0"
+  }
+}

@@ -24,6 +24,13 @@ The physical books don't each hold their own copy of the document. The server ke
 
 Other Minecraft versions and mod loaders aren't supported yet. Ready-to-use JAR files are in the [`builds` branch](https://github.com/woofinspace/WoofsCommunityBook/tree/builds/fabric).
 
+## Source by version
+
+Each mod version has its own folder with the full source for that version:
+
+- [`versions/1.1.0`](versions/1.1.0): current. Adds Government (config modes, bills, menu).
+- [`versions/1.0.0`](versions/1.0.0): the first Fabric 26.2 release, kept for history.
+
 ## Installation
 
 The mod needs to be installed on both the server and every player's client.
