@@ -40,6 +40,7 @@ public final class GovernmentCommands {
                 .then(Commands.literal("status").executes(c -> run(c, null, GovernmentCommands::status)))
                 .then(Commands.literal("list").executes(c -> run(c, null, GovernmentCommands::list)))
                 .then(Commands.literal("laws").executes(c -> run(c, null, GovernmentCommands::laws)))
+                .then(Commands.literal("menu").executes(c -> run(c, null, GovernmentCommands::menu)))
 
                 .then(Commands.literal("propose")
                         .then(Commands.argument("text", StringArgumentType.greedyString())
@@ -120,18 +121,17 @@ public final class GovernmentCommands {
         };
     }
 
-    private static int status(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg, GovernmentData gov) {
+    /** "citizen, senate" or "no role". */
+    static String rolesOf(GovConfig.Data cfg, String name) {
         List<String> roles = new ArrayList<>();
         for (String role : List.of("citizen", "congress", "senate", "president")) {
             if (GovConfig.contains(group(cfg, role), name)) roles.add(role);
         }
-        String you = roles.isEmpty() ? "no role" : String.join(", ", roles);
-        say(c.getSource(), "Government is on. You are: " + you + ". Senate has "
-                + cfg.groups.senate.size() + " members, Congress has " + cfg.groups.congress.size() + ".");
-        return 1;
+        return roles.isEmpty() ? "no role" : String.join(", ", roles);
     }
 
-    private static int list(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg, GovernmentData gov) {
+    /** The queues as plain text, for /government list and the menu. */
+    static String listing(GovernmentData gov) {
         StringBuilder sb = new StringBuilder();
         sb.append("Citizen proposals (waiting for Congress):");
         if (gov.proposals().isEmpty()) sb.append("\n  none");
@@ -149,7 +149,25 @@ public final class GovernmentCommands {
         for (GovernmentData.Bill b : gov.presidency()) {
             sb.append("\n  #").append(b.id()).append(" by ").append(b.author()).append(": ").append(b.text());
         }
-        say(c.getSource(), sb.toString());
+        return sb.toString();
+    }
+
+    private static int status(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg, GovernmentData gov) {
+        say(c.getSource(), "Government is on. You are: " + rolesOf(cfg, name) + ". Senate has "
+                + cfg.groups.senate.size() + " members, Congress has " + cfg.groups.congress.size() + ".");
+        return 1;
+    }
+
+    private static int list(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg, GovernmentData gov) {
+        say(c.getSource(), listing(gov));
+        return 1;
+    }
+
+    /** Opens the menu on the player's screen. */
+    private static int menu(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg, GovernmentData gov) {
+        ServerPlayer player = c.getSource().getPlayer();
+        if (player == null) return 0;
+        GovernmentMenu.send(player, c.getSource().getServer());
         return 1;
     }
 

@@ -41,6 +41,8 @@ public class WoofsCommunityBook implements ModInitializer {
 
         PayloadTypeRegistry.serverboundPlay().register(SaveBookPayload.TYPE, SaveBookPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(OpenBookPayload.TYPE, OpenBookPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(GovMenuPayload.TYPE, GovMenuPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(GovActionPayload.TYPE, GovActionPayload.CODEC);
 
         ServerPlayNetworking.registerGlobalReceiver(SaveBookPayload.TYPE, (payload, context) -> {
             ServerPlayer player = context.player();
@@ -61,6 +63,7 @@ public class WoofsCommunityBook implements ModInitializer {
         });
 
         GovernmentCommands.init();
+        GovernmentMenu.init();
 
         LOGGER.info("Woof's Community Book loaded.");
     }
