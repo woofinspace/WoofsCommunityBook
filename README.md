@@ -60,5 +60,9 @@ Players receive one automatically when they join. To give one manually, run:
 See [LICENSE](LICENSE).
 
 
+<details>
+<summary>Show the full command list</summary>
 
-    99% Coded by AI
+99% Coded by Anthropic Claude Code Haiku 5.5 and OpenAI ChatGPT
+
+</details>
