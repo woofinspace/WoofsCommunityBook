@@ -61,8 +61,10 @@ See [LICENSE](LICENSE).
 
 
 <details>
-<summary>Show the full command list</summary>
+<summary>Contributors</summary>
 
-99% Coded by Anthropic Claude Code Haiku 5.5 and OpenAI ChatGPT
+WoofInSpace
+Anthropic Claude Code Haiku 5.5
+OpenAI ChatGPT
 
 </details>
