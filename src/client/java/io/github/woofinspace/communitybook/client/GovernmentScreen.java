@@ -21,29 +21,33 @@ public class GovernmentScreen extends Screen {
     private static final int TEXT_COLOR = 0xFF3A2414;
 
     private String roles;
+    private String actions;
     private String listing;
     private String savedText = "";
     private String savedNumber = "";
     private EditBox textBox;
     private EditBox numberBox;
 
-    public GovernmentScreen(String roles, String listing) {
+    public GovernmentScreen(String roles, String actions, String listing) {
         super(Component.literal("Government"));
         this.roles = roles;
+        this.actions = actions;
         this.listing = listing;
     }
 
     /** New state from the server. Keeps whatever the player has typed. */
-    public void applyState(String roles, String listing) {
+    public void applyState(String roles, String actions, String listing) {
         if (textBox != null) savedText = textBox.getValue();
         if (numberBox != null) savedNumber = numberBox.getValue();
         this.roles = roles;
+        this.actions = actions;
         this.listing = listing;
         this.rebuildWidgets();
     }
 
-    private boolean has(String role) {
-        return roles.contains(role);
+    /** True if the server says this player may use the action in the current mode. */
+    private boolean can(String action) {
+        return ("," + actions + ",").contains("," + action + ",");
     }
 
     @Override
@@ -61,30 +65,28 @@ public class GovernmentScreen extends Screen {
         numberBox.setHint(Component.literal("Bill number (merge: two numbers)"));
         numberBox.setValue(savedNumber);
 
+        // Each button only appears if the server says this player may use it in the current mode.
         int y = top + 214;
-        if (has("citizen")) {
-            add(left, y, "Propose", () -> sendText("propose"));
-            y += 22;
-        }
-        if (has("congress")) {
-            add(left, y, "Submit", () -> sendText("submit"));
-            add(left + 80, y, "Forward", () -> sendNumber("forward"));
-            add(left + 160, y, "Reject", () -> sendNumber("reject"));
-            y += 22;
-        }
-        if (has("senate")) {
-            add(left, y, "Yes", () -> send("government vote " + number() + " yes"));
-            add(left + 80, y, "No", () -> send("government vote " + number() + " no"));
-            add(left + 160, y, "Split", () -> send("government vote " + number() + " split " + text()));
-            add(left + 240, y, "Merge", () -> sendNumber("merge"));
-            y += 22;
-        }
-        if (has("president")) {
-            add(left, y, "Approve", () -> sendNumber("approve"));
-            add(left + 80, y, "Veto", () -> sendNumber("veto"));
-            add(left + 160, y, "Decree", () -> sendText("decree"));
-            y += 22;
-        }
+        int x = left;
+        if (can("propose")) add(x, y, "Propose", () -> sendText("propose"));
+        if (can("submit")) add(x += 80, y, "Submit", () -> sendText("submit"));
+        x = left;
+        y += 22;
+        if (can("forward")) add(x, y, "Forward", () -> sendNumber("forward"));
+        if (can("reject")) add(x += 80, y, "Reject", () -> sendNumber("reject"));
+        x = left;
+        y += 22;
+        if (can("vote")) add(x, y, "Yes", () -> send("government vote " + number() + " yes"));
+        if (can("vote")) add(x += 80, y, "No", () -> send("government vote " + number() + " no"));
+        if (can("vote")) add(x += 80, y, "Split", () -> send("government vote " + number() + " split " + text()));
+        if (can("merge")) add(x += 80, y, "Merge", () -> sendNumber("merge"));
+        x = left;
+        y += 22;
+        if (can("approve")) add(x, y, "Approve", () -> sendNumber("approve"));
+        if (can("veto")) add(x += 80, y, "Veto", () -> sendNumber("veto"));
+        if (can("decree")) add(x += 80, y, "Decree", () -> sendText("decree"));
+        x = left;
+        y += 22;
         add(left, y, "Refresh", () -> send("government menu"));
         add(left + W - 76, y, "Close", this::onClose);
     }

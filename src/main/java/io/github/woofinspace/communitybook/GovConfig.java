@@ -24,6 +24,15 @@ public final class GovConfig {
 
     public static final class Government {
         public boolean enabled = false;
+        public Modes modes = new Modes();
+    }
+
+    /** Only checked when government.enabled is true. Turn on exactly one. Normal is on by default. */
+    public static final class Modes {
+        public boolean normal = true;
+        public boolean citizenCongress = false;
+        public boolean congressSenate = false;
+        public boolean presidentOnly = false;
     }
 
     public static final class Groups {
@@ -79,9 +88,46 @@ public final class GovConfig {
         }
     }
 
+    /** The modes that are switched on, by their config names. */
+    public static List<String> enabledModes(Data d) {
+        List<String> on = new ArrayList<>();
+        if (d.government.modes.normal) on.add("normal");
+        if (d.government.modes.citizenCongress) on.add("citizenCongress");
+        if (d.government.modes.congressSenate) on.add("congressSenate");
+        if (d.government.modes.presidentOnly) on.add("presidentOnly");
+        return on;
+    }
+
+    /**
+     * The mode to use right now. Returns null if more than one mode is on, which is an error.
+     * If none is on, Normal is used. Modes are ignored when government is disabled.
+     */
+    public static GovMode mode(Data d) {
+        List<String> on = enabledModes(d);
+        if (on.size() > 1) return null;
+        if (on.isEmpty()) return GovMode.NORMAL;
+        return switch (on.get(0)) {
+            case "citizenCongress" -> GovMode.CITIZEN_CONGRESS;
+            case "congressSenate" -> GovMode.CONGRESS_SENATE;
+            case "presidentOnly" -> GovMode.PRESIDENT_ONLY;
+            default -> GovMode.NORMAL;
+        };
+    }
+
+    /** Message for a startup crash when more than one mode is on. Null when the config is fine. */
+    public static String modeProblem(Data d) {
+        if (!d.government.enabled) return null;
+        List<String> on = enabledModes(d);
+        if (on.size() <= 1) return null;
+        return "More than one government mode is turned on in config/woofscommunitybook.json: "
+                + String.join(", ", on) + ". Under government.modes, leave only one set to true, "
+                + "then start the server again.";
+    }
+
     /** Fills in any lists or sections missing from a hand-edited file. */
     private static Data normalize(Data d) {
         if (d.government == null) d.government = new Government();
+        if (d.government.modes == null) d.government.modes = new Modes();
         if (d.groups == null) d.groups = new Groups();
         if (d.groups.citizen == null) d.groups.citizen = new ArrayList<>();
         if (d.groups.congress == null) d.groups.congress = new ArrayList<>();

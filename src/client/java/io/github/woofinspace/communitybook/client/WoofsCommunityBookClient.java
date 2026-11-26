@@ -18,9 +18,9 @@ public class WoofsCommunityBookClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(GovMenuPayload.TYPE, (payload, context) -> {
             context.client().execute(() -> {
                 if (govScreen != null) {
-                    govScreen.applyState(payload.roles(), payload.listing());
+                    govScreen.applyState(payload.roles(), payload.actions(), payload.listing());
                 } else {
-                    govScreen = new GovernmentScreen(payload.roles(), payload.listing());
+                    govScreen = new GovernmentScreen(payload.roles(), payload.actions(), payload.listing());
                     Minecraft.getInstance().setScreenAndShow(govScreen);
                 }
             });

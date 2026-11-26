@@ -59,7 +59,14 @@ public class WoofsCommunityBook implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             BookSavedData.get(server);
             // Creates config/woofscommunitybook.json with defaults if it doesn't exist yet.
-            GovConfig.load();
+            GovConfig.Data govConfig = GovConfig.load();
+            // Only checked when government is on: more than one mode is a crash, so the server can't run half-configured.
+            String problem = GovConfig.modeProblem(govConfig);
+            if (problem != null) {
+                throw new net.minecraft.ReportedException(
+                        net.minecraft.CrashReport.forThrowable(new IllegalStateException(problem),
+                                "Checking government modes in woofscommunitybook.json"));
+            }
         });
 
         GovernmentCommands.init();

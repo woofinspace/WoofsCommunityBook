@@ -27,21 +27,28 @@ public final class GovernmentMenu {
         });
     }
 
-    /** Sends the current roles and listing to one player. Opens the menu on their client if it isn't open. */
+    /** Sends the current roles, allowed actions, and listing to one player. */
     public static void send(ServerPlayer player, MinecraftServer server) {
         GovConfig.Data cfg = GovConfig.load();
+        String name = player.getName().getString();
         String roles;
-        String listing;
+        String actions = "";
+        String listing = "";
         if (!cfg.government.enabled) {
             roles = "Government is turned off in config/woofscommunitybook.json.";
-            listing = "";
         } else {
-            roles = "You are: " + GovernmentCommands.rolesOf(cfg, player.getName().getString());
-            listing = GovernmentCommands.listing(GovernmentData.get(server));
-            if (listing.length() > MAX_LISTING) {
-                listing = listing.substring(0, MAX_LISTING) + "\n...(list shortened)";
+            GovMode mode = GovConfig.mode(cfg);
+            if (mode == null) {
+                roles = GovConfig.modeProblem(cfg);
+            } else {
+                roles = "Mode: " + mode.label() + ". You are: " + GovernmentCommands.rolesOf(cfg, name);
+                actions = GovernmentCommands.actionsOf(cfg, mode, name);
+                listing = GovernmentCommands.listing(GovernmentData.get(server));
+                if (listing.length() > MAX_LISTING) {
+                    listing = listing.substring(0, MAX_LISTING) + "\n...(list shortened)";
+                }
             }
         }
-        ServerPlayNetworking.send(player, new GovMenuPayload(roles, listing));
+        ServerPlayNetworking.send(player, new GovMenuPayload(roles, actions, listing));
     }
 }

@@ -203,6 +203,14 @@ public class GovernmentData extends SavedData {
         return removed;
     }
 
+    /** The President writes a bill for their own sign-or-veto queue (President-only mode). */
+    public Bill addToPresidency(String author, String text) {
+        Bill b = new Bill(nextId++, text, author, new ArrayList<>());
+        presidency.add(b);
+        setDirty();
+        return b;
+    }
+
     /** The President enacts a law directly, without a bill. */
     public Law decree(String author, String text) {
         Law law = new Law(laws.size() + 1, text, author);

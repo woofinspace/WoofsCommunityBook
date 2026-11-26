@@ -15,12 +15,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * /government commands. Everything here does nothing unless government.enabled is true in the config.
+ * /government commands. Nothing works unless government.enabled is true in the config.
+ * Which actions a player may use depends on the government mode (see GovMode).
  *
- *   Anyone:     status, list, laws, propose (citizens)
- *   Congress:   submit, forward, reject
- *   Senate:     vote yes|no|split, merge
- *   President:  approve, veto, decree
+ *   Anyone:  status, list, laws, menu
+ *   Actions: propose, submit, forward, reject, vote, merge, approve, veto, decree
  */
 public final class GovernmentCommands {
     private GovernmentCommands() {}
@@ -29,9 +28,10 @@ public final class GovernmentCommands {
         CommandRegistrationCallback.EVENT.register(GovernmentCommands::register);
     }
 
-    /** Runs a command after the player, config, and role checks have passed. */
+    /** Runs a command after the player, config, mode, and action checks have passed. */
     private interface Action {
-        int run(CommandContext<CommandSourceStack> ctx, String name, GovConfig.Data cfg, GovernmentData gov);
+        int run(CommandContext<CommandSourceStack> ctx, String name, GovConfig.Data cfg,
+                GovernmentData gov, GovMode mode);
     }
 
     static void register(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext context,
@@ -44,52 +44,55 @@ public final class GovernmentCommands {
 
                 .then(Commands.literal("propose")
                         .then(Commands.argument("text", StringArgumentType.greedyString())
-                                .executes(c -> run(c, "citizen", GovernmentCommands::propose))))
+                                .executes(c -> run(c, "propose", GovernmentCommands::propose))))
 
                 .then(Commands.literal("submit")
                         .then(Commands.argument("text", StringArgumentType.greedyString())
-                                .executes(c -> run(c, "congress", GovernmentCommands::submit))))
+                                .executes(c -> run(c, "submit", GovernmentCommands::submit))))
                 .then(Commands.literal("forward")
                         .then(Commands.argument("id", IntegerArgumentType.integer(1))
-                                .executes(c -> run(c, "congress", GovernmentCommands::forward))))
+                                .executes(c -> run(c, "forward", GovernmentCommands::forward))))
                 .then(Commands.literal("reject")
                         .then(Commands.argument("id", IntegerArgumentType.integer(1))
-                                .executes(c -> run(c, "congress", GovernmentCommands::reject))))
+                                .executes(c -> run(c, "reject", GovernmentCommands::reject))))
 
                 .then(Commands.literal("vote")
                         .then(Commands.argument("id", IntegerArgumentType.integer(1))
                                 .then(Commands.literal("yes")
-                                        .executes(c -> run(c, "senate", voteAction("yes", ""))))
+                                        .executes(c -> run(c, "vote", voteAction("yes", ""))))
                                 .then(Commands.literal("no")
-                                        .executes(c -> run(c, "senate", voteAction("no", ""))))
+                                        .executes(c -> run(c, "vote", voteAction("no", ""))))
                                 .then(Commands.literal("split")
                                         .then(Commands.argument("text", StringArgumentType.greedyString())
-                                                .executes(c -> run(c, "senate", (ctx, n, cfg, gov) ->
-                                                        vote(ctx, n, cfg, gov, "split",
+                                                .executes(c -> run(c, "vote", (ctx, n, cfg, gov, mode) ->
+                                                        vote(ctx, n, cfg, gov, mode, "split",
                                                                 StringArgumentType.getString(ctx, "text"))))))))
                 .then(Commands.literal("merge")
                         .then(Commands.argument("a", IntegerArgumentType.integer(1))
                                 .then(Commands.argument("b", IntegerArgumentType.integer(1))
-                                        .executes(c -> run(c, "senate", GovernmentCommands::merge)))))
+                                        .executes(c -> run(c, "merge", GovernmentCommands::merge)))))
 
                 .then(Commands.literal("approve")
                         .then(Commands.argument("id", IntegerArgumentType.integer(1))
-                                .executes(c -> run(c, "president", GovernmentCommands::approve))))
+                                .executes(c -> run(c, "approve", GovernmentCommands::approve))))
                 .then(Commands.literal("veto")
                         .then(Commands.argument("id", IntegerArgumentType.integer(1))
-                                .executes(c -> run(c, "president", GovernmentCommands::veto))))
+                                .executes(c -> run(c, "veto", GovernmentCommands::veto))))
                 .then(Commands.literal("decree")
                         .then(Commands.argument("text", StringArgumentType.greedyString())
-                                .executes(c -> run(c, "president", GovernmentCommands::decree))))
+                                .executes(c -> run(c, "decree", GovernmentCommands::decree))))
         );
     }
 
     private static Action voteAction(String choice, String text) {
-        return (ctx, n, cfg, gov) -> vote(ctx, n, cfg, gov, choice, text);
+        return (ctx, n, cfg, gov, mode) -> vote(ctx, n, cfg, gov, mode, choice, text);
     }
 
-    /** Checks the player, that government is on, and the role. Then runs the action. */
-    private static int run(CommandContext<CommandSourceStack> c, String role, Action action) {
+    /**
+     * Checks the player, that government is on, the mode, and the action. Then runs it.
+     * action is null for commands anyone can use.
+     */
+    private static int run(CommandContext<CommandSourceStack> c, String action, Action body) {
         CommandSourceStack src = c.getSource();
         ServerPlayer player = src.getPlayer();
         if (player == null) {
@@ -103,12 +106,24 @@ public final class GovernmentCommands {
             fail(src, "Government is turned off. An admin can turn it on with government.enabled in config/woofscommunitybook.json.");
             return 0;
         }
-        if (role != null && !GovConfig.contains(group(cfg, role), name)) {
-            fail(src, "Only members of the " + role + " group can do that.");
+        GovMode mode = GovConfig.mode(cfg);
+        if (mode == null) {
+            fail(src, GovConfig.modeProblem(cfg));
             return 0;
         }
+        if (action != null) {
+            List<String> who = mode.allowed(cfg, action);
+            if (who == null) {
+                fail(src, "\"" + action + "\" isn't used in " + mode.label() + " mode.");
+                return 0;
+            }
+            if (!GovConfig.contains(who, name)) {
+                fail(src, "You can't " + action + " in " + mode.label() + " mode. Your roles: " + rolesOf(cfg, name) + ".");
+                return 0;
+            }
+        }
 
-        return action.run(c, name, cfg, GovernmentData.get(src.getServer()));
+        return body.run(c, name, cfg, GovernmentData.get(src.getServer()), mode);
     }
 
     static List<String> group(GovConfig.Data cfg, String role) {
@@ -128,6 +143,17 @@ public final class GovernmentCommands {
             if (GovConfig.contains(group(cfg, role), name)) roles.add(role);
         }
         return roles.isEmpty() ? "no role" : String.join(", ", roles);
+    }
+
+    /** The actions this player may use in this mode, comma-separated. Used by the menu. */
+    static String actionsOf(GovConfig.Data cfg, GovMode mode, String name) {
+        List<String> out = new ArrayList<>();
+        for (String action : List.of("propose", "submit", "forward", "reject", "vote", "merge",
+                "approve", "veto", "decree")) {
+            List<String> who = mode.allowed(cfg, action);
+            if (who != null && GovConfig.contains(who, name)) out.add(action);
+        }
+        return String.join(",", out);
     }
 
     /** The queues as plain text, for /government list and the menu. */
@@ -152,26 +178,22 @@ public final class GovernmentCommands {
         return sb.toString();
     }
 
-    private static int status(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg, GovernmentData gov) {
-        say(c.getSource(), "Government is on. You are: " + rolesOf(cfg, name) + ". Senate has "
-                + cfg.groups.senate.size() + " members, Congress has " + cfg.groups.congress.size() + ".");
+    private static int status(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg,
+                              GovernmentData gov, GovMode mode) {
+        say(c.getSource(), "Government is on, in " + mode.label() + " mode. You are: " + rolesOf(cfg, name)
+                + ". Senate has " + cfg.groups.senate.size() + " members, Congress has "
+                + cfg.groups.congress.size() + ".");
         return 1;
     }
 
-    private static int list(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg, GovernmentData gov) {
+    private static int list(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg,
+                            GovernmentData gov, GovMode mode) {
         say(c.getSource(), listing(gov));
         return 1;
     }
 
-    /** Opens the menu on the player's screen. */
-    private static int menu(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg, GovernmentData gov) {
-        ServerPlayer player = c.getSource().getPlayer();
-        if (player == null) return 0;
-        GovernmentMenu.send(player, c.getSource().getServer());
-        return 1;
-    }
-
-    private static int laws(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg, GovernmentData gov) {
+    private static int laws(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg,
+                            GovernmentData gov, GovMode mode) {
         if (gov.laws().isEmpty()) {
             say(c.getSource(), "No laws have been passed yet.");
             return 1;
@@ -185,23 +207,46 @@ public final class GovernmentCommands {
         return 1;
     }
 
-    private static int propose(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg, GovernmentData gov) {
-        String text = StringArgumentType.getString(c, "text").trim();
-        if (!checkText(c.getSource(), text)) return 0;
-        GovernmentData.Bill b = gov.propose(name, text);
-        say(c.getSource(), "Proposal #" + b.id() + " sent to Congress.");
+    /** Opens the menu on the player's screen. */
+    private static int menu(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg,
+                            GovernmentData gov, GovMode mode) {
+        ServerPlayer player = c.getSource().getPlayer();
+        if (player == null) return 0;
+        GovernmentMenu.send(player, c.getSource().getServer());
         return 1;
     }
 
-    private static int submit(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg, GovernmentData gov) {
+    private static int propose(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg,
+                               GovernmentData gov, GovMode mode) {
         String text = StringArgumentType.getString(c, "text").trim();
         if (!checkText(c.getSource(), text)) return 0;
-        GovernmentData.Bill b = gov.submitToSenate(name, text);
-        say(c.getSource(), "Bill #" + b.id() + " sent to the Senate.");
+        if (mode == GovMode.CITIZEN_CONGRESS) {
+            // Citizens and Congress are one body here, so a proposal goes straight to the Senate.
+            GovernmentData.Bill b = gov.submitToSenate(name, text);
+            say(c.getSource(), "Bill #" + b.id() + " sent to the Senate.");
+        } else {
+            GovernmentData.Bill b = gov.propose(name, text);
+            say(c.getSource(), "Proposal #" + b.id() + " sent to Congress.");
+        }
         return 1;
     }
 
-    private static int forward(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg, GovernmentData gov) {
+    private static int submit(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg,
+                              GovernmentData gov, GovMode mode) {
+        String text = StringArgumentType.getString(c, "text").trim();
+        if (!checkText(c.getSource(), text)) return 0;
+        if (mode == GovMode.PRESIDENT_ONLY) {
+            GovernmentData.Bill b = gov.addToPresidency(name, text);
+            say(c.getSource(), "Bill #" + b.id() + " is waiting for your signature or veto.");
+        } else {
+            GovernmentData.Bill b = gov.submitToSenate(name, text);
+            say(c.getSource(), "Bill #" + b.id() + " sent to the Senate.");
+        }
+        return 1;
+    }
+
+    private static int forward(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg,
+                               GovernmentData gov, GovMode mode) {
         int id = IntegerArgumentType.getInteger(c, "id");
         GovernmentData.Bill b = gov.forward(id);
         if (b == null) {
@@ -212,7 +257,8 @@ public final class GovernmentCommands {
         return 1;
     }
 
-    private static int reject(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg, GovernmentData gov) {
+    private static int reject(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg,
+                              GovernmentData gov, GovMode mode) {
         int id = IntegerArgumentType.getInteger(c, "id");
         if (!gov.rejectProposal(id)) {
             fail(c.getSource(), "No citizen proposal #" + id + ".");
@@ -222,25 +268,26 @@ public final class GovernmentCommands {
         return 1;
     }
 
-    private static int vote(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg, GovernmentData gov,
-                            String choice, String text) {
+    private static int vote(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg,
+                            GovernmentData gov, GovMode mode, String choice, String text) {
         int id = IntegerArgumentType.getInteger(c, "id");
         if (choice.equals("split") && !checkText(c.getSource(), text.trim())) return 0;
-        int senateSize = cfg.groups.senate.size();
-        GovernmentData.VoteResult result = gov.vote(id, name, choice, text.trim(), senateSize);
+        int electorate = mode.allowed(cfg, "vote").size();
+        GovernmentData.VoteResult result = gov.vote(id, name, choice, text.trim(), electorate);
         switch (result) {
             case NOT_FOUND -> {
                 fail(c.getSource(), "No Senate bill #" + id + ".");
                 return 0;
             }
-            case PASSED -> say(c.getSource(), "Bill #" + id + " passed the Senate and is now with the President.");
-            case REJECTED -> say(c.getSource(), "Bill #" + id + " was rejected by the Senate.");
+            case PASSED -> say(c.getSource(), "Bill #" + id + " passed and is now with the President.");
+            case REJECTED -> say(c.getSource(), "Bill #" + id + " was rejected.");
             case RECORDED -> say(c.getSource(), "Your vote on bill #" + id + " is recorded (" + choice + ").");
         }
         return 1;
     }
 
-    private static int merge(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg, GovernmentData gov) {
+    private static int merge(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg,
+                             GovernmentData gov, GovMode mode) {
         int a = IntegerArgumentType.getInteger(c, "a");
         int b = IntegerArgumentType.getInteger(c, "b");
         GovernmentData.Bill merged = gov.merge(a, b);
@@ -253,7 +300,8 @@ public final class GovernmentCommands {
         return 1;
     }
 
-    private static int approve(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg, GovernmentData gov) {
+    private static int approve(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg,
+                               GovernmentData gov, GovMode mode) {
         int id = IntegerArgumentType.getInteger(c, "id");
         GovernmentData.Law law = gov.approve(id);
         if (law == null) {
@@ -264,7 +312,8 @@ public final class GovernmentCommands {
         return 1;
     }
 
-    private static int veto(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg, GovernmentData gov) {
+    private static int veto(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg,
+                            GovernmentData gov, GovMode mode) {
         int id = IntegerArgumentType.getInteger(c, "id");
         if (!gov.veto(id)) {
             fail(c.getSource(), "No bill #" + id + " waiting for the President.");
@@ -274,7 +323,8 @@ public final class GovernmentCommands {
         return 1;
     }
 
-    private static int decree(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg, GovernmentData gov) {
+    private static int decree(CommandContext<CommandSourceStack> c, String name, GovConfig.Data cfg,
+                              GovernmentData gov, GovMode mode) {
         String text = StringArgumentType.getString(c, "text").trim();
         if (!checkText(c.getSource(), text)) return 0;
         GovernmentData.Law law = gov.decree(name, text);
