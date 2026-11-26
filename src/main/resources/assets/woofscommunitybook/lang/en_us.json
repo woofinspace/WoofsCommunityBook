@@ -1,0 +1,11 @@
+{
+  "item.woofscommunitybook.community_book": "Woof's Community Book",
+  "item.woofscommunitybook.community_book.tooltip": "Shared with everyone on this server",
+
+  "screen.woofscommunitybook.title": "Woof's Community Book",
+  "screen.woofscommunitybook.save": "Save",
+  "screen.woofscommunitybook.close": "Close",
+  "screen.woofscommunitybook.page": "Page %s",
+  "screen.woofscommunitybook.synced": "Synced",
+  "screen.woofscommunitybook.conflict": "Someone changed the book. Your editor was refreshed."
+}
