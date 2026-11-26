@@ -50,12 +50,17 @@ public class WoofsCommunityBook implements ModInitializer {
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayer player = handler.getPlayer();
+            GovConfig.recordJoin(player.getName().getString());
             server.execute(() -> BookSavedData.ensureBookForPlayer(server, player));
         });
 
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             BookSavedData.get(server);
+            // Creates config/woofscommunitybook.json with defaults if it doesn't exist yet.
+            GovConfig.load();
         });
+
+        GovernmentCommands.init();
 
         LOGGER.info("Woof's Community Book loaded.");
     }
