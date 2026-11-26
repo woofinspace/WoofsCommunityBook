@@ -1,6 +1,6 @@
-package io.github.woofinspace.communityclipboard.client;
+package io.github.woofinspace.communitybook.client;
 
-import io.github.woofinspace.communityclipboard.SaveClipboardPayload;
+import io.github.woofinspace.communitybook.SaveBookPayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class CommunityClipboardScreen extends Screen {
+public class CommunityBookScreen extends Screen {
     private static final int MAX_PAGES = 8;
 
     private int revision;
@@ -21,7 +21,7 @@ public class CommunityClipboardScreen extends Screen {
     private int pageIndex = 0;
     private boolean dirty = false;
 
-    public CommunityClipboardScreen(Component title, int revision, String document) {
+    public CommunityBookScreen(Component title, int revision, String document) {
         super(title);
         this.revision = revision;
         this.pages = decode(document);
@@ -92,7 +92,7 @@ public class CommunityClipboardScreen extends Screen {
 
     private void save() {
         collectPage();
-        ClientPlayNetworking.send(new SaveClipboardPayload(revision, encode(pages)));
+        ClientPlayNetworking.send(new SaveBookPayload(revision, encode(pages)));
         dirty = false;
     }
 
@@ -110,6 +110,14 @@ public class CommunityClipboardScreen extends Screen {
             collectPage();
         }
         super.onClose();
+    }
+
+    @Override
+    public void removed() {
+        super.removed();
+        if (WoofsCommunityBookClient.openScreen == this) {
+            WoofsCommunityBookClient.openScreen = null;
+        }
     }
 
     @Override

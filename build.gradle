@@ -20,6 +20,18 @@ dependencies {
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 }
 
+loom {
+    // Compile src/client alongside src/main so the client entrypoint ends up in the JAR.
+    splitEnvironmentSourceSets()
+
+    mods {
+        "woofscommunitybook" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
 processResources {
     inputs.property "version", project.version
 

@@ -1,4 +1,4 @@
-package io.github.woofinspace.communityclipboard;
+package io.github.woofinspace.communitybook;
 
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -16,18 +16,18 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ClipboardSavedData extends SavedData {
+public class BookSavedData extends SavedData {
     public static final int MAX_PAGES = 8;
     public static final int MAX_PAGE_LENGTH = 4096;
 
     private int revision;
     private List<String> pages;
 
-    public ClipboardSavedData() {
+    public BookSavedData() {
         this(0, new ArrayList<>(List.of("")));
     }
 
-    public ClipboardSavedData(int revision, List<String> pages) {
+    public BookSavedData(int revision, List<String> pages) {
         this.revision = revision;
         this.pages = normalize(pages);
     }
@@ -51,41 +51,41 @@ public class ClipboardSavedData extends SavedData {
         return out;
     }
 
-    private static final Codec<ClipboardSavedData> CODEC = RecordCodecBuilder.create(instance ->
+    private static final Codec<BookSavedData> CODEC = RecordCodecBuilder.create(instance ->
         instance.group(
-            Codec.INT.fieldOf("revision").forGetter(ClipboardSavedData::revision),
+            Codec.INT.fieldOf("revision").forGetter(BookSavedData::revision),
             Codec.STRING.listOf().fieldOf("pages").forGetter(d -> d.pages)
-        ).apply(instance, ClipboardSavedData::new)
+        ).apply(instance, BookSavedData::new)
     );
 
-    private static final SavedDataType<ClipboardSavedData> TYPE = new SavedDataType<>(
-        Identifier.fromNamespaceAndPath(WoofsCommunityClipboard.MOD_ID, "community_book"),
-        ClipboardSavedData::new,
+    private static final SavedDataType<BookSavedData> TYPE = new SavedDataType<>(
+        Identifier.fromNamespaceAndPath(WoofsCommunityBook.MOD_ID, "community_book"),
+        BookSavedData::new,
         CODEC,
         null
     );
 
-    public static ClipboardSavedData get(MinecraftServer server) {
+    public static BookSavedData get(MinecraftServer server) {
         var level = server.getLevel(net.minecraft.server.level.ServerLevel.OVERWORLD);
-        if (level == null) return new ClipboardSavedData();
+        if (level == null) return new BookSavedData();
         return level.getDataStorage().computeIfAbsent(TYPE);
     }
 
     public static void openFor(MinecraftServer server, ServerPlayer player) {
-        ClipboardSavedData data = get(server);
-        ServerPlayNetworking.send(player, new OpenClipboardPayload(data.revision, encode(data.pages)));
+        BookSavedData data = get(server);
+        ServerPlayNetworking.send(player, new OpenBookPayload(data.revision, encode(data.pages)));
     }
 
-    public static void handleSave(MinecraftServer server, ServerPlayer player, SaveClipboardPayload payload) {
-        ClipboardSavedData data = get(server);
+    public static void handleSave(MinecraftServer server, ServerPlayer player, SaveBookPayload payload) {
+        BookSavedData data = get(server);
 
-        // Only accept saves from a player who is actually holding the custom clipboard.
-        if (!hasClipboard(player)) {
+        // Only accept saves from a player who is actually holding the custom book.
+        if (!hasBook(player)) {
             return;
         }
 
         if (payload.baseRevision() != data.revision) {
-            ServerPlayNetworking.send(player, new OpenClipboardPayload(
+            ServerPlayNetworking.send(player, new OpenBookPayload(
                     data.revision,
                     encode(data.pages)
             ));
@@ -102,22 +102,22 @@ public class ClipboardSavedData extends SavedData {
 
         String document = encode(data.pages);
         for (ServerPlayer target : PlayerLookup.all(server)) {
-            ServerPlayNetworking.send(target, new OpenClipboardPayload(data.revision, document));
+            ServerPlayNetworking.send(target, new OpenBookPayload(data.revision, document));
         }
     }
 
-    public static void ensureClipboardForPlayer(MinecraftServer server, ServerPlayer player) {
-        if (!hasClipboard(player)) {
-            ItemStack stack = WoofsCommunityClipboard.newClipboardStack();
+    public static void ensureBookForPlayer(MinecraftServer server, ServerPlayer player) {
+        if (!hasBook(player)) {
+            ItemStack stack = WoofsCommunityBook.newBookStack();
             if (!player.getInventory().add(stack)) {
                 player.drop(stack, false);
             }
         }
     }
 
-    private static boolean hasClipboard(ServerPlayer player) {
+    private static boolean hasBook(ServerPlayer player) {
         for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
-            if (WoofsCommunityClipboard.isClipboard(player.getInventory().getItem(i))) {
+            if (WoofsCommunityBook.isBook(player.getInventory().getItem(i))) {
                 return true;
             }
         }

@@ -1,4 +1,4 @@
-package io.github.woofinspace.communityclipboard;
+package io.github.woofinspace.communitybook;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -18,56 +18,56 @@ import net.minecraft.server.level.ServerPlayer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class WoofsCommunityClipboard implements ModInitializer {
+public class WoofsCommunityBook implements ModInitializer {
     public static final String MOD_ID = "woofscommunitybook";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    public static final ResourceKey<Item> CLIPBOARD_KEY = ResourceKey.create(
+    public static final ResourceKey<Item> BOOK_KEY = ResourceKey.create(
             BuiltInRegistries.ITEM.key(),
             Identifier.fromNamespaceAndPath(MOD_ID, "community_book")
     );
 
-    public static final Item community_book = new CommunityClipboardItem(
-            new Item.Properties().setId(CLIPBOARD_KEY).stacksTo(1)
+    public static final Item community_book = new CommunityBookItem(
+            new Item.Properties().setId(BOOK_KEY).stacksTo(1)
     );
 
     @Override
     public void onInitialize() {
-        net.minecraft.core.Registry.register(BuiltInRegistries.ITEM, CLIPBOARD_KEY, community_book);
+        net.minecraft.core.Registry.register(BuiltInRegistries.ITEM, BOOK_KEY, community_book);
 
         CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(entries -> {
             entries.accept(community_book);
         });
 
-        PayloadTypeRegistry.serverboundPlay().register(SaveClipboardPayload.TYPE, SaveClipboardPayload.CODEC);
-        PayloadTypeRegistry.clientboundPlay().register(OpenClipboardPayload.TYPE, OpenClipboardPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(SaveBookPayload.TYPE, SaveBookPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(OpenBookPayload.TYPE, OpenBookPayload.CODEC);
 
-        ServerPlayNetworking.registerGlobalReceiver(SaveClipboardPayload.TYPE, (payload, context) -> {
+        ServerPlayNetworking.registerGlobalReceiver(SaveBookPayload.TYPE, (payload, context) -> {
             ServerPlayer player = context.player();
             var server = context.server();
-            server.execute(() -> ClipboardSavedData.handleSave(server, player, payload));
+            server.execute(() -> BookSavedData.handleSave(server, player, payload));
         });
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayer player = handler.getPlayer();
-            server.execute(() -> ClipboardSavedData.ensureClipboardForPlayer(server, player));
+            server.execute(() -> BookSavedData.ensureBookForPlayer(server, player));
         });
 
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            ClipboardSavedData.get(server);
+            BookSavedData.get(server);
         });
 
         LOGGER.info("Woof's Community Book loaded.");
     }
 
-    public static ItemStack newClipboardStack() {
+    public static ItemStack newBookStack() {
         ItemStack stack = new ItemStack(community_book);
         stack.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME,
                 Component.literal("Woof's Community Book"));
         return stack;
     }
 
-    public static boolean isClipboard(ItemStack stack) {
+    public static boolean isBook(ItemStack stack) {
         return stack.is(community_book);
     }
 }

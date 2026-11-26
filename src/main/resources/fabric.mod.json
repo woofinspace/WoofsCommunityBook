@@ -8,10 +8,10 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "io.github.woofinspace.communityclipboard.WoofsCommunityClipboard"
+      "io.github.woofinspace.communitybook.WoofsCommunityBook"
     ],
     "client": [
-      "io.github.woofinspace.communityclipboard.client.WoofsCommunityClipboardClient"
+      "io.github.woofinspace.communitybook.client.WoofsCommunityBookClient"
     ]
   },
   "depends": {
