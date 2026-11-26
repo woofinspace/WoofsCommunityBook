@@ -7,5 +7,6 @@
   "screen.woofscommunitybook.close": "Close",
   "screen.woofscommunitybook.page": "Page %s",
   "screen.woofscommunitybook.synced": "Synced",
-  "screen.woofscommunitybook.conflict": "Someone changed the book. Your editor was refreshed."
+  "screen.woofscommunitybook.conflict": "Someone changed the book. Your editor was refreshed.",
+  "screen.woofscommunitybook.outdated": "Someone else saved changes. Your text is kept. Press Save to replace theirs, or close to discard yours."
 }

@@ -20,6 +20,7 @@ public class CommunityBookScreen extends Screen {
     private final List<EditBox> editors = new ArrayList<>();
     private int pageIndex = 0;
     private boolean dirty = false;
+    private boolean outdated = false;
 
     public CommunityBookScreen(Component title, int revision, String document) {
         super(title);
@@ -94,13 +95,22 @@ public class CommunityBookScreen extends Screen {
         collectPage();
         ClientPlayNetworking.send(new SaveBookPayload(revision, encode(pages)));
         dirty = false;
+        outdated = false;
     }
 
     public void applyServerState(int newRevision, String document) {
         if (newRevision < revision) return;
+        if (dirty) {
+            // The player has unsaved text: keep it. Moving to the new revision means Save
+            // deliberately replaces the other change, and the notice tells the player that.
+            this.revision = newRevision;
+            this.outdated = true;
+            return;
+        }
         this.revision = newRevision;
         this.pages = decode(document);
         this.dirty = false;
+        this.outdated = false;
         this.rebuildWidgets();
     }
 
@@ -134,5 +144,11 @@ public class CommunityBookScreen extends Screen {
         graphics.text(this.font,
                 Component.translatable("screen.woofscommunitybook.synced") + " v" + revision,
                 left + 200, top - 8, 0xFF3A2414, false);
+
+        if (outdated) {
+            graphics.text(this.font,
+                    Component.translatable("screen.woofscommunitybook.outdated"),
+                    left, top + 295, 0xFF8A2A1A, false);
+        }
     }
 }
